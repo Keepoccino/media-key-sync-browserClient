@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Media Key Sync</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
+    <script>
+      let audio = document.createElement("audio");
+      var exampleSocket = new WebSocket("ws://localhost:5000");
+      audio.src = "15-seconds-of-silence.mp3";
+      audio.loop = true;
+      audio.play();
+
+      exampleSocket.onopen = () => exampleSocket.send("info");
+      exampleSocket.onmessage = (event) => {
+        var msg = JSON.parse(event.data);
+        switch (msg.type) {
+          case "error":
+            alert(msg.message);
+            break;
+          case "mediainfo":
+            console.log(msg.info);
+            displayInfo(msg.info);
+            break;
+        }
+      };
+
+      navigator.mediaSession.setActionHandler("play", async function () {
+        console.log('> User clicked "Play" icon.');
+        await audio.play();
+        exampleSocket.send("play");
+      });
+
+      navigator.mediaSession.setActionHandler("pause", async function () {
+        console.log('> User clicked "Pause" icon.');
+        audio.pause();
+        exampleSocket.send("pause");
+      });
+
+      navigator.mediaSession.setActionHandler("previoustrack", async function () {
+        console.log('> User clicked "Previous Track" icon.');
+        exampleSocket.send("prev");
+        exampleSocket.send("play");
+        await audio.play();
+      });
+
+      navigator.mediaSession.setActionHandler("nexttrack", async function () {
+        console.log('> User clicked "Next Track" icon.');
+        exampleSocket.send("next");
+        exampleSocket.send("play");
+        await audio.play();
+      });
+
+      function displayInfo(info) {
+        document.getElementById("title").innerText = info.title;
+        document.getElementById("artist").innerText = info.artist;
+
+        let cover_src = "data:image/png;base64," + info.thumbnailBase64Png;
+        document.getElementById("cover").src = cover_src;
+
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: info.title,
+          artist: info.artist,
+          artwork: [{ src: cover_src, type: "image/png" }],
+        });
+      }
+    </script>
+  </head>
+
+  <body style="background-color: #111111; color: #dddddd">
+    <h1>Currently Playing:</h1>
+    <h2 id="title">Title</h2>
+    <h3 id="artist">Artist</h3>
+    <img id="cover" src="data:image/png;base64," alt="Cover" />
+    <button onclick="audio.play()">Click here to start</button>
+  </body>
+</html>
