@@ -9,6 +9,20 @@
       .hidden {
         display: none;
       }
+
+      .mediaKeyButton {
+        background-color: Transparent;
+        background-repeat: no-repeat;
+        border: none;
+        width: 50px;
+        height: 50px;
+        color: #eeeeee;
+        cursor: pointer;
+      }
+
+      .mediaKeyButton:hover {
+        color: #aaaaaa;
+      }
     </style>
     <script>
       let audio = document.createElement("audio");
@@ -17,38 +31,19 @@
 
       var syncWebsocket = null;
 
-      navigator.mediaSession.setActionHandler("play", async function () {
-        console.log('> User clicked "Play" icon.');
-        await audio.play();
-        syncWebsocket.send("play");
-      });
+      navigator.mediaSession.setActionHandler("play", play);
 
-      navigator.mediaSession.setActionHandler("pause", async function () {
-        console.log('> User clicked "Pause" icon.');
-        audio.pause();
-        syncWebsocket.send("pause");
-      });
+      navigator.mediaSession.setActionHandler("pause", pause);
 
-      navigator.mediaSession.setActionHandler(
-        "previoustrack",
-        async function () {
-          console.log('> User clicked "Previous Track" icon.');
-          syncWebsocket.send("prev");
-          syncWebsocket.send("play");
-          await audio.play();
-        }
-      );
+      navigator.mediaSession.setActionHandler("previoustrack", skipPrevious);
 
-      navigator.mediaSession.setActionHandler("nexttrack", async function () {
-        console.log('> User clicked "Next Track" icon.');
-        syncWebsocket.send("next");
-        syncWebsocket.send("play");
-        await audio.play();
-      });
+      navigator.mediaSession.setActionHandler("nexttrack", skipNext);
 
       function displayInfo(info) {
         document.getElementById("title").innerText = info.title;
         document.getElementById("artist").innerText = info.artist;
+        document.getElementById("application").innerText = info.app;
+
         document.getElementById("connection-panel").classList.add("hidden");
         document.getElementById("playing-panel").classList.remove("hidden");
 
@@ -80,6 +75,32 @@
               break;
           }
         };
+      }
+
+      async function play() {
+        console.log('> User clicked "Play" icon.');
+        await audio.play();
+        syncWebsocket.send("play");
+      }
+
+      async function pause() {
+        console.log('> User clicked "Pause" icon.');
+        audio.pause();
+        syncWebsocket.send("pause");
+      }
+
+      async function skipPrevious() {
+        console.log('> User clicked "Previous Track" icon.');
+        syncWebsocket.send("prev");
+        syncWebsocket.send("play");
+        await audio.play();
+      }
+
+      async function skipNext() {
+        console.log('> User clicked "Next Track" icon.');
+        syncWebsocket.send("next");
+        syncWebsocket.send("play");
+        await audio.play();
       }
 
       function connectClick() {
@@ -126,7 +147,57 @@
       <h1>Currently Playing:</h1>
       <h2 id="title">Title</h2>
       <h3 id="artist">Artist</h3>
+      <h3 id="application">Application</h3>
       <img id="cover" src="data:image/png;base64," alt="Cover" />
+      <button class="mediaKeyButton" onclick="skipPrevious()">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 512 512"
+          fill="currentColor"
+        >
+          <path
+            d="M48 256c0 114.69 93.31 208 208 208s208-93.31 208-208S370.69 48 256 48 48 141.31 48 256zm128-64a16 16 0 0132 0v53l111.68-67.46a10.78 10.78 0 0116.32 9.33v138.26a10.78 10.78 0 01-16.32 9.31L208 267v53a16 16 0 01-32 0z"
+          />
+        </svg>
+      </button>
+      <button class="mediaKeyButton" onclick="play()">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </button>
+      <button class="mediaKeyButton" onclick="pause()">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </button>
+      <button class="mediaKeyButton" onclick="skipNext()">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 512 512"
+          fill="currentColor"
+        >
+          <path
+            d="M256 48C141.31 48 48 141.31 48 256s93.31 208 208 208 208-93.31 208-208S370.69 48 256 48zm80 272a16 16 0 01-32 0v-53l-111.68 67.44a10.78 10.78 0 01-16.32-9.31V186.87a10.78 10.78 0 0116.32-9.31L304 245v-53a16 16 0 0132 0z"
+          />
+        </svg>
+      </button>
     </div>
   </body>
 </html>
