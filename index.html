@@ -28,6 +28,7 @@
       let audio = document.createElement("audio");
       audio.src = "15-seconds-of-silence.mp3";
       audio.loop = true;
+      audio.volume = 0.01; // muted does not work...
 
       var syncWebsocket = null;
 
