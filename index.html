@@ -5,57 +5,52 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>Media Key Sync</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
+    <style>
+      .hidden {
+        display: none;
+      }
+    </style>
     <script>
       let audio = document.createElement("audio");
-      var exampleSocket = new WebSocket("ws://localhost:5000");
       audio.src = "15-seconds-of-silence.mp3";
       audio.loop = true;
-      audio.play();
 
-      exampleSocket.onopen = () => exampleSocket.send("info");
-      exampleSocket.onmessage = (event) => {
-        var msg = JSON.parse(event.data);
-        switch (msg.type) {
-          case "error":
-            alert(msg.message);
-            break;
-          case "mediainfo":
-            console.log(msg.info);
-            displayInfo(msg.info);
-            break;
-        }
-      };
+      var syncWebsocket = null;
 
       navigator.mediaSession.setActionHandler("play", async function () {
         console.log('> User clicked "Play" icon.');
         await audio.play();
-        exampleSocket.send("play");
+        syncWebsocket.send("play");
       });
 
       navigator.mediaSession.setActionHandler("pause", async function () {
         console.log('> User clicked "Pause" icon.');
         audio.pause();
-        exampleSocket.send("pause");
+        syncWebsocket.send("pause");
       });
 
-      navigator.mediaSession.setActionHandler("previoustrack", async function () {
-        console.log('> User clicked "Previous Track" icon.');
-        exampleSocket.send("prev");
-        exampleSocket.send("play");
-        await audio.play();
-      });
+      navigator.mediaSession.setActionHandler(
+        "previoustrack",
+        async function () {
+          console.log('> User clicked "Previous Track" icon.');
+          syncWebsocket.send("prev");
+          syncWebsocket.send("play");
+          await audio.play();
+        }
+      );
 
       navigator.mediaSession.setActionHandler("nexttrack", async function () {
         console.log('> User clicked "Next Track" icon.');
-        exampleSocket.send("next");
-        exampleSocket.send("play");
+        syncWebsocket.send("next");
+        syncWebsocket.send("play");
         await audio.play();
       });
 
       function displayInfo(info) {
         document.getElementById("title").innerText = info.title;
         document.getElementById("artist").innerText = info.artist;
+        document.getElementById("connection-panel").classList.add("hidden");
+        document.getElementById("playing-panel").classList.remove("hidden");
 
         let cover_src = "data:image/png;base64," + info.thumbnailBase64Png;
         document.getElementById("cover").src = cover_src;
@@ -66,14 +61,72 @@
           artwork: [{ src: cover_src, type: "image/png" }],
         });
       }
+
+      function connectToServer(ip, port) {
+        syncWebsocket = new WebSocket("ws://" + ip + ":" + port);
+        audio.play();
+        audio.pause();
+
+        syncWebsocket.onopen = () => syncWebsocket.send("info");
+        syncWebsocket.onmessage = (event) => {
+          var msg = JSON.parse(event.data);
+          switch (msg.type) {
+            case "error":
+              alert(msg.message);
+              break;
+            case "mediainfo":
+              console.log(msg.info);
+              displayInfo(msg.info);
+              break;
+          }
+        };
+      }
+
+      function connectClick() {
+        let ip = document.getElementById("ip").value;
+        let port = document.getElementById("port").value;
+        connectToServer(ip, port);
+
+        window.localStorage.setItem("mediaSyncIP", ip);
+        window.localStorage.setItem("mediaSyncPort", port);
+      }
+
+      window.addEventListener("load", function () {
+        let storedIP = window.localStorage.getItem("mediaSyncIP");
+        let storedPort = window.localStorage.getItem("mediaSyncPort");
+
+        if (storedIP) {
+          document.getElementById("ip").value = storedIP;
+        }
+        if (storedPort) {
+          document.getElementById("port").value = storedPort;
+        }
+      });
     </script>
   </head>
 
   <body style="background-color: #111111; color: #dddddd">
-    <h1>Currently Playing:</h1>
-    <h2 id="title">Title</h2>
-    <h3 id="artist">Artist</h3>
-    <img id="cover" src="data:image/png;base64," alt="Cover" />
-    <button onclick="audio.play()">Click here to start</button>
+    <div id="connection-panel">
+      <h1>Connect to server</h1>
+      <label for="ip">Hostname / IP</label>
+      <input type="text" name="ip" id="ip" value="127.0.0.1" />
+      <label for="port">Port</label>
+      <input
+        type="number"
+        name="port"
+        id="port"
+        min="1"
+        max="65535"
+        value="5000"
+        size="6"
+      />
+      <input type="button" onclick="connectClick()" value="Connect" />
+    </div>
+    <div id="playing-panel" class="hidden">
+      <h1>Currently Playing:</h1>
+      <h2 id="title">Title</h2>
+      <h3 id="artist">Artist</h3>
+      <img id="cover" src="data:image/png;base64," alt="Cover" />
+    </div>
   </body>
 </html>
